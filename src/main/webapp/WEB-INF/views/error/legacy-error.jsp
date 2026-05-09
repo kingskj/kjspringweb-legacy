@@ -1,0 +1,1 @@
+<%@ page contentType="text/html;charset=UTF-8" language="java" %><!doctype html><html><head><meta charset="UTF-8"><title>Error</title></head><body><h1>Legacy Error Observed</h1><p>Exception Class: ${exceptionClass}</p><p>Message: ${exceptionMessage}</p><p><a href="javascript:history.back()">Back</a></p></body></html>

@@ -1,0 +1,59 @@
+plugins {
+    id 'java'
+    id 'war'
+}
+
+group = 'com.kjweb'
+version = '0.0.1-SNAPSHOT'
+description = 'KJ Spring Web Legacy - TurtlePick target server'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+repositories {
+    mavenCentral()
+}
+
+ext {
+    springVersion = '4.3.30.RELEASE'
+    springSecurityVersion = '4.2.20.RELEASE'
+    mybatisVersion = '3.5.16'
+    mybatisSpringVersion = '1.3.3'
+}
+
+configurations {
+    providedRuntime
+}
+
+dependencies {
+    implementation "org.springframework:spring-core:${springVersion}"
+    implementation "org.springframework:spring-context:${springVersion}"
+    implementation "org.springframework:spring-webmvc:${springVersion}"
+    implementation "org.springframework:spring-jdbc:${springVersion}"
+    implementation "org.springframework.security:spring-security-web:${springSecurityVersion}"
+    implementation "org.springframework.security:spring-security-config:${springSecurityVersion}"
+
+    implementation "org.mybatis:mybatis:${mybatisVersion}"
+    implementation "org.mybatis:mybatis-spring:${mybatisSpringVersion}"
+    implementation 'org.xerial:sqlite-jdbc:3.36.0.3'
+    implementation 'javax.servlet:jstl:1.2'
+    implementation 'org.slf4j:slf4j-api:1.7.36'
+    runtimeOnly 'ch.qos.logback:logback-classic:1.2.13'
+
+    providedCompile 'javax.servlet:javax.servlet-api:3.1.0'
+
+    testImplementation 'junit:junit:4.13.2'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    if (JavaVersion.current().isJava9Compatible()) {
+        options.release = 8
+    }
+}
+
+war {
+    archiveBaseName = 'kjspringweb-legacy'
+}

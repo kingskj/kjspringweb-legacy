@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+       xmlns:task="http://www.springframework.org/schema/task"
+       xsi:schemaLocation="
+           http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+           http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+           http://www.springframework.org/schema/jdbc https://www.springframework.org/schema/jdbc/spring-jdbc.xsd
+           http://www.springframework.org/schema/task https://www.springframework.org/schema/task/spring-task.xsd">
+
+    <bean class="org.springframework.context.support.PropertySourcesPlaceholderConfigurer"/>
+
+    <context:component-scan base-package="com.kjweb.legacy">
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+    </context:component-scan>
+
+    <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName" value="org.sqlite.JDBC"/>
+        <property name="url" value="jdbc:sqlite:${legacy.sqlite.path:kjspringweb-legacy.db}"/>
+        <property name="username" value=""/>
+        <property name="password" value=""/>
+    </bean>
+
+    <jdbc:initialize-database data-source="dataSource">
+        <jdbc:script location="classpath:schema.sql"/>
+        <jdbc:script location="classpath:data.sql"/>
+    </jdbc:initialize-database>
+
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="mapperLocations" value="classpath*:mybatis/mapper/*.xml"/>
+        <property name="typeAliasesPackage" value="com.kjweb.legacy.domain.model"/>
+    </bean>
+
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.kjweb.legacy.domain.mapper"/>
+    </bean>
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+    <task:scheduler id="legacyTaskScheduler" pool-size="1"/>
+    <task:scheduled-tasks scheduler="legacyTaskScheduler">
+        <task:scheduled ref="legacyErrorPatternBatch" method="runDailyPattern" cron="0 35 3 * * *"/>
+    </task:scheduled-tasks>
+</beans>

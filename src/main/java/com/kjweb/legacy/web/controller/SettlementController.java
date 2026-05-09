@@ -1,0 +1,11 @@
+package com.kjweb.legacy.web.controller;
+import com.kjweb.legacy.domain.model.WorkItem; import com.kjweb.legacy.web.service.*; import org.springframework.stereotype.Controller; import org.springframework.ui.Model; import org.springframework.web.bind.annotation.*; import javax.servlet.http.HttpSession; import java.util.*;
+@Controller @RequestMapping("/settlements")
+public class SettlementController {
+    private static final String SESSION_KEY="settlementWorkItems"; private final SettlementService settlementService; private final LegacyOpsService opsService;
+    public SettlementController(SettlementService settlementService,LegacyOpsService opsService){this.settlementService=settlementService;this.opsService=opsService;}
+    @GetMapping public String page(HttpSession session,Model model){model.addAttribute("vendors",opsService.findVendors());model.addAttribute("settlements",settlementService.findSettlements());model.addAttribute("workItems",session.getAttribute(SESSION_KEY));return "settlement/index";}
+    @PostMapping("/direct") public String direct(@RequestParam String vendorCode,@RequestParam String amount,@RequestParam String businessDate){settlementService.insertDirect(vendorCode,amount,businessDate);return "redirect:/settlements";}
+    @PostMapping("/session/add") @SuppressWarnings("unchecked") public String addToSession(HttpSession session,@RequestParam String vendorCode,@RequestParam String amount,@RequestParam String businessDate){List<WorkItem> items=(List<WorkItem>)session.getAttribute(SESSION_KEY);if(items==null){items=new ArrayList<WorkItem>();session.setAttribute(SESSION_KEY,items);}items.add(settlementService.newWorkItem(vendorCode,amount,businessDate));return "redirect:/settlements";}
+    @PostMapping("/session/commit") @SuppressWarnings("unchecked") public String commitSession(HttpSession session){List<WorkItem> items=(List<WorkItem>)session.getAttribute(SESSION_KEY);settlementService.commitSessionItems(items);session.removeAttribute(SESSION_KEY);return "redirect:/settlements";}
+}

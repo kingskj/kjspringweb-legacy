@@ -1,0 +1,4 @@
+insert into legacy_board(title,content,created_at) select 'Legacy Spring MVC','Spring MVC 4.x target server skeleton.',current_timestamp where not exists (select 1 from legacy_board where title='Legacy Spring MVC');
+insert into legacy_board(title,content,created_at) select 'TurtlePick Probe','WAR + javax.servlet + MyBatis XML baseline.',current_timestamp where not exists (select 1 from legacy_board where title='TurtlePick Probe');
+insert into legacy_vendor(code,name,credit_limit) select 'V-DEFAULT','Default Vendor',100000 where not exists (select 1 from legacy_vendor where code='V-DEFAULT');
+insert into legacy_inventory(sku,name,quantity) select 'SKU-BASE','Seed Inventory',10 where not exists (select 1 from legacy_inventory where sku='SKU-BASE');

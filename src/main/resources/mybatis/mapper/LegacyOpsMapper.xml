@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kjweb.legacy.domain.mapper.LegacyOpsMapper">
+<resultMap id="VendorResultMap" type="VendorLegacy"><id property="id" column="id"/><result property="code" column="code"/><result property="name" column="name"/><result property="creditLimit" column="credit_limit"/></resultMap>
+<resultMap id="InventoryResultMap" type="InventoryLegacy"><id property="id" column="id"/><result property="sku" column="sku"/><result property="name" column="name"/><result property="quantity" column="quantity"/></resultMap>
+<resultMap id="JobResultMap" type="JobQueueLegacy"><id property="id" column="id"/><result property="jobType" column="job_type"/><result property="payload" column="payload"/><result property="status" column="status"/><result property="attemptCount" column="attempt_count"/><result property="forceErrorCode" column="force_error_code"/><result property="createdAt" column="created_at"/></resultMap>
+<resultMap id="SettlementResultMap" type="SettlementLegacy"><id property="id" column="id"/><result property="vendorCode" column="vendor_code"/><result property="amount" column="amount"/><result property="businessDate" column="business_date"/><result property="status" column="status"/></resultMap>
+<resultMap id="FileManifestResultMap" type="FileManifestLegacy"><id property="id" column="id"/><result property="fileName" column="file_name"/><result property="expectedRows" column="expected_rows"/><result property="status" column="status"/></resultMap>
+<select id="findVendors" resultMap="VendorResultMap">select id,code,name,credit_limit from legacy_vendor order by id desc</select>
+<insert id="insertVendor">insert into legacy_vendor(code,name,credit_limit) values (#{code},#{name},#{creditLimit})</insert>
+<select id="findInventory" resultMap="InventoryResultMap">select id,sku,name,quantity from legacy_inventory <where><if test="keyword != null and keyword != ''">sku like '%' || #{keyword} || '%' or name like '%' || #{keyword} || '%'</if></where><if test="sortColumn != null and sortColumn != ''"> order by ${sortColumn}</if><if test="sortColumn == null or sortColumn == ''"> order by id desc</if></select>
+<insert id="insertInventory">insert into legacy_inventory(sku,name,quantity) values (#{sku},#{name},#{quantity})</insert>
+<update id="adjustInventory">update legacy_inventory set quantity=quantity+#{delta} where sku=#{sku}</update>
+<select id="findJobs" resultMap="JobResultMap">select id,job_type,payload,status,attempt_count,force_error_code,created_at from legacy_job_queue order by id desc</select>
+<select id="findJob" resultMap="JobResultMap">select id,job_type,payload,status,attempt_count,force_error_code,created_at from legacy_job_queue where id=#{id}</select>
+<insert id="insertJob">insert into legacy_job_queue(job_type,payload,status,attempt_count,force_error_code,created_at) values (#{jobType},#{payload},'READY',0,#{forceErrorCode},current_timestamp)</insert>
+<update id="updateJobStatus">update legacy_job_queue set status=#{status} where id=#{id}</update>
+<update id="incrementAttempt">update legacy_job_queue set attempt_count=attempt_count+1 where id=#{id}</update>
+<select id="findSettlements" resultMap="SettlementResultMap">select id,vendor_code,amount,business_date,status from legacy_settlement order by id desc</select>
+<insert id="insertSettlement">insert into legacy_settlement(vendor_code,amount,business_date,status) values (#{vendorCode},#{amount},#{businessDate},#{status})</insert>
+<select id="findManifests" resultMap="FileManifestResultMap">select id,file_name,expected_rows,status from legacy_file_manifest order by id desc</select>
+<select id="findManifest" resultMap="FileManifestResultMap">select id,file_name,expected_rows,status from legacy_file_manifest where id=#{id}</select>
+<insert id="insertManifest">insert into legacy_file_manifest(file_name,expected_rows,status) values (#{fileName},#{expectedRows},'REGISTERED')</insert>
+<update id="updateManifestStatus">update legacy_file_manifest set status=#{status} where id=#{id}</update>
+</mapper>
