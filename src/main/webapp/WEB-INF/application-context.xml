@@ -18,7 +18,7 @@
 
     <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
         <property name="driverClassName" value="org.sqlite.JDBC"/>
-        <property name="url" value="jdbc:sqlite:${legacy.sqlite.path:kjspringweb-legacy.db}"/>
+        <property name="url" value="jdbc:sqlite:${legacy.sqlite.path:kjspringweb-legacy.db}?journal_mode=WAL&amp;busy_timeout=5000"/>
         <property name="username" value=""/>
         <property name="password" value=""/>
     </bean>

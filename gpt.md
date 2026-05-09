@@ -179,3 +179,28 @@ D:\workspace\kjspringweb\gradlew.bat -p D:\workspace\kjspringweb-legacy clean wa
   - 로그인 후 `/ops` HTTP 200.
   - `/ops` 화면에 `Daily Error Batch Manual Trigger` 노출 확인.
   - 검증용 Tomcat 종료 완료.
+
+## 14) 2026-05-09 Java 8 release / SQLite WAL / Async Lab 반영
+- Gemini 분석에 대한 사용자 지시 `확정 반영`으로 다음 개선안을 반영했다.
+- Java 8 호환:
+  - `pom.xml`의 `maven-compiler-plugin`을 `source/target 1.8`에서 `<release>8</release>`로 변경했다.
+  - JDK 17 컴파일 환경에서 Java 9+ 표준 API가 섞이는 것을 컴파일 단계에서 차단하기 위한 조치다.
+- SQLite 동시성 노이즈 완화:
+  - `application-context.xml`의 JDBC URL에 `journal_mode=WAL`, `busy_timeout=5000`을 추가했다.
+  - 의도한 UNIQUE/CHECK/파싱 오류 대신 짧은 파일 락으로 `SQLITE_BUSY`가 먼저 터지는 경우를 줄이기 위한 조치다.
+- Servlet 3.1 async 검증:
+  - `web.xml`의 `springSecurityFilterChain`, `DispatcherServlet`에 `<async-supported>true</async-supported>`를 추가했다.
+  - `AsyncLabController`를 추가했다.
+  - 경로:
+    - `/async-lab/callable`
+    - `/async-lab/callable-error`
+    - `/async-lab/deferred`
+    - `/async-lab/deferred-error`
+  - 목적은 TurtlePick agent의 ThreadLocal trace context가 Spring MVC 4.x 비동기 경계에서 어떻게 동작하는지 검증하는 것이다.
+- 검증:
+  - Maven `clean package` 성공.
+  - 컴파일 로그에서 `javac [debug release 8]` 확인.
+  - Tomcat 8.5.100 `runtime/tomcat-base`를 새 WAR로 재배포했다.
+  - 로그인 후 `/async-lab/callable` HTTP 200, `legacy callable async ok` 확인.
+  - 로그인 후 `/async-lab/deferred` HTTP 200, `legacy deferred async ok` 확인.
+  - `/async-lab/callable-error`, `/async-lab/deferred-error`는 `Legacy Error Observed` 화면과 의도한 에러 메시지 노출 확인.
