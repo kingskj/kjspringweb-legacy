@@ -204,3 +204,26 @@ D:\workspace\kjspringweb\gradlew.bat -p D:\workspace\kjspringweb-legacy clean wa
   - 로그인 후 `/async-lab/callable` HTTP 200, `legacy callable async ok` 확인.
   - 로그인 후 `/async-lab/deferred` HTTP 200, `legacy deferred async ok` 확인.
   - `/async-lab/callable-error`, `/async-lab/deferred-error`는 `Legacy Error Observed` 화면과 의도한 에러 메시지 노출 확인.
+
+## 15) 2026-05-09 JSP 화면 정리
+- 사용자 요청으로 레거시 프로젝트 화면을 기본 HTML 수준에서 벗어나도록 다듬었다.
+- 목적:
+  - 테스트베드 성격은 유지한다.
+  - 화면단 validation은 추가하지 않는다.
+  - 폼/테이블/네비게이션만 읽기 좋게 정리한다.
+- 추가 파일:
+  - `src/main/webapp/resources/css/legacy.css`
+- 변경 JSP:
+  - `home/login.jsp`
+  - `home/index.jsp`
+  - `home/detail.jsp`
+  - `ops/dashboard.jsp`
+  - `settlement/index.jsp`
+  - `fileimport/index.jsp`
+  - `error/legacy-error.jsp`
+- 검증:
+  - Maven `clean package` 성공.
+  - Tomcat 8.5.100 `runtime/tomcat-base`에 새 WAR 재배포.
+  - 로그인 후 `/`, `/ops`, `/settlements`, `/file-import`, `/legacy/boards/1` 모두 HTTP 200.
+  - 각 화면에 `/resources/css/legacy.css` 링크 포함 확인.
+  - `/resources/css/legacy.css` HTTP 200 확인.

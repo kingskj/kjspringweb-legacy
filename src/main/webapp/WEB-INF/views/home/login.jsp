@@ -3,14 +3,30 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>login</title>
+    <title>Legacy Login</title>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/css/legacy.css">
 </head>
 <body>
-<h1>Login</h1>
-<form action="${pageContext.request.contextPath}/login" method="post">
-    <label>Username <input name="username" value="user"></label><br>
-    <label>Password <input name="password" type="password" value="password"></label><br>
-    <button type="submit">Login</button>
-</form>
+<main class="login-wrap">
+    <section class="panel login-panel">
+        <div class="panel-header">
+            <h1 class="panel-title">kjspringweb legacy</h1>
+            <p class="panel-note">Spring MVC 4.x / session login</p>
+        </div>
+        <div class="panel-body">
+            <form class="stack" action="${pageContext.request.contextPath}/login" method="post">
+                <div class="field">
+                    <label>Username</label>
+                    <input name="username" value="user">
+                </div>
+                <div class="field">
+                    <label>Password</label>
+                    <input name="password" type="password" value="password">
+                </div>
+                <button type="submit">Login</button>
+            </form>
+        </div>
+    </section>
+</main>
 </body>
 </html>
