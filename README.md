@@ -1,28 +1,22 @@
 # kjspringweb-legacy
 
-TurtlePick agent의 레거시 Spring 호환성 검증용 대상 서버입니다.
+TurtlePick agent의 레거시 Spring 호환성을 검증하기 위한 대상 서버입니다.
 
-## 왜 만들었나
+기존 `kjspringweb`가 Spring Boot 기반 검증 대상이라면, 이 프로젝트는 Boot가 없는 전통적인 Spring MVC WAR 애플리케이션을 기준으로 합니다. 목적은 기능 많은 업무 시스템을 만드는 것이 아니라, TurtlePick javaagent가 레거시 Spring 실행 환경에서도 요청 흐름과 실패 지점을 관측할 수 있는지 확인하는 것입니다.
 
-기존 `kjspringweb`는 Spring Boot 기반 대상 서버입니다. 하지만 TurtlePick agent는 Boot 전용이 아니라 레거시 Spring 애플리케이션에도 붙어야 합니다.
+## 설계 원칙
 
-이 프로젝트는 아래 같은 비-Boot 환경에서 agent가 정상적으로 부착되고 요청 흐름을 관측할 수 있는지 확인하기 위해 만든 최소 골격입니다.
+- Spring Boot를 사용하지 않습니다.
+- 내장 Tomcat이나 auto-configuration에 기대지 않습니다.
+- 외장 Servlet 컨테이너에 WAR로 배포되는 구조를 유지합니다.
+- `web.xml`, XML Spring bean 설정, `javax.servlet` 기반 흐름을 보존합니다.
+- 화면단 입력 검증은 의도적으로 최소화합니다.
+- 잘못된 입력은 서비스, MyBatis, DB 제약, 서버 예외 단계에서 드러나게 둡니다.
+- 무거운 외부 인프라 대신 SQLite, DB queue, 파일 dropbox 같은 가벼운 검증 흐름을 사용합니다.
 
-- Spring Boot 없음
-- WAR 패키징
-- `web.xml` 기반 부트스트랩
-- XML Spring bean 설정
-- `javax.servlet` 기반
-- 외장 Tomcat 배포 전제
-- Spring MVC 4.x
-- Spring Security 4.x
-- MyBatis XML mapper
-- SQLite 파일 DB
-- 서버 세션 기반 form-login 인증
+## 기술 스펙
 
-## 기술 기준
-
-| 영역 | 버전 / 선택 |
+| 영역 | 선택 |
 |---|---|
 | Java 바이트코드 | 8 |
 | Spring Framework / MVC | 4.3.30.RELEASE |
@@ -31,65 +25,58 @@ TurtlePick agent의 레거시 Spring 호환성 검증용 대상 서버입니다.
 | MyBatis-Spring | 1.3.3 |
 | SQLite JDBC | 3.36.0.3 |
 | Servlet API | javax.servlet 3.1.0 provided |
-| 패키징 | WAR |
+| View | JSP |
+| Packaging | WAR |
+| 인증 | Spring Security form-login / 서버 세션 |
 
-## DB와 인증
+## 검증 대상 흐름
 
-DB는 SQLite를 사용합니다.
+| 영역 | 경로 | 검증 포인트 |
+|---|---|---|
+| 로그인/세션 | `/login` | Spring Security 4.x form-login, 서버 세션 인증 |
+| 게시글 | `/`, `/legacy/boards/{id}` | Spring MVC Controller, JSP, MyBatis XML 단건/목록 조회 |
+| 운영 실험실 | `/ops` | 벤더/재고 등록, raw `order by ${sortColumn}`, DB queue 처리 |
+| 정산 작업함 | `/settlements` | 서버 세션 임시 작업함, 직접 DB insert, 일괄 commit |
+| 파일 처리 | `/file-import` | 파일 manifest 등록, dropbox 파일 존재/행 수 검증 |
+| 비동기 MVC | `/async-lab/*` | Servlet 3.1 async, `Callable`, `DeferredResult`, 비동기 예외 |
+| 스케줄 배치 | Spring `task:scheduled` | 날짜별 장애 패턴 수동/자동 실행 |
 
-기본 JDBC URL은 아래와 같습니다.
+## 의도적 실패 지점
+
+- 숫자 파싱 실패: 문자 입력을 `Long.valueOf`, `Integer.valueOf`에서 그대로 처리
+- DB 제약 실패: SQLite `UNIQUE`, `NOT NULL`, `CHECK`
+- SQL 오류: MyBatis XML의 raw 정렬 SQL 조각
+- 큐 처리 실패: `NPE`, `SQL`, `NEGATIVE_STOCK` 강제 오류 코드
+- 파일 처리 실패: 파일 없음, 예상 행 수 불일치
+- 비동기 예외: `Callable`, `DeferredResult` 내부 예외
+
+## DB와 로그
+
+DB는 SQLite 파일 DB를 사용합니다.
 
 ```text
 jdbc:sqlite:${legacy.sqlite.path:kjspringweb-legacy.db}?journal_mode=WAL&busy_timeout=5000
 ```
 
-동시 쓰기 시 의도한 제약 오류가 SQLite 락 오류에 묻히는 것을 줄이기 위해 WAL과 `busy_timeout`을 켜둡니다.
-
-외장 Tomcat 실행 시 JVM 옵션으로 DB 파일 위치를 바꿀 수 있습니다.
+운영형 로그 파일도 남깁니다. 기본 경로는 JVM 옵션으로 바꿀 수 있습니다.
 
 ```text
--Dlegacy.sqlite.path=D:/workspace/kjspringweb-legacy/runtime/kjspringweb-legacy.db
+-Dlegacy.sqlite.path=...
+-Dlegacy.log.path=...
 ```
 
-인증은 Spring Security 4.x의 서버 세션 기반 form-login 방식입니다. JWT나 토큰 인증은 사용하지 않습니다.
+로그 파일은 일반 로그와 에러 로그를 분리합니다.
 
-
-## 현재 구현된 검증 기능
-
-기존 Boot 프로젝트에 없는 흐름 위주로 구성했습니다. 화면단 validation은 없습니다.
-
-| 기능 | 경로 | 에러 유도 포인트 |
-|---|---|---|
-| Legacy Ops Lab | `/ops` | 숫자 파싱 실패, UNIQUE/CHECK 제약 위반, raw `order by ${sortColumn}` SQL 오류 |
-| DB Queue | `/ops` | `NPE`, `SQL`, `NEGATIVE_STOCK` 강제 처리 실패 |
-| Session Settlement | `/settlements` | 세션 작업함 누락, 중복 정산, 음수/문자 금액 |
-| File Dropbox Import | `/file-import` | 파일 없음, row count mismatch, 중복 파일명, 숫자 파싱 실패 |
-| Async Lab | `/async-lab/*` | Servlet 3.1 async, `Callable`, `DeferredResult`, async error |
-
-의도적으로 막지 않는 것:
-
-- HTML required/min/max/pattern 없음
-- JavaScript validation 없음
-- Controller validation 없음
-- DTO validation 없음
-- 잘못된 값은 Service/Mapper/DB 제약에서 터지게 둠
-## 주요 경로
-
-| 경로 | 설명 |
+| 파일 | 내용 |
 |---|---|
-| `/login` | Spring Security 로그인 화면 |
-| `/` | 게시글 목록 홈 화면 |
-| `/legacy/boards` | 레거시 게시글 목록 |
-| `/legacy/boards/{id}` | 레거시 게시글 상세 |
-| /ops | 운영 실험실: 벤더/재고/DB 큐 |
-| /settlements | 세션 기반 정산 작업함 |
-| /file-import | 파일 dropbox 처리 |
-| `/async-lab/callable` | Spring MVC `Callable` 비동기 성공 |
-| `/async-lab/callable-error` | Spring MVC `Callable` 비동기 예외 |
-| `/async-lab/deferred` | `DeferredResult` 비동기 성공 |
-| `/async-lab/deferred-error` | `DeferredResult` 비동기 예외 |
+| `legacy-app.log` | INFO 이상 일반 로그 |
+| `legacy-app.yyyy-MM-dd.log` | 날짜별 일반 로그 |
+| `legacy-error.log` | ERROR 이상 에러 로그 |
+| `legacy-error.yyyy-MM-dd.log` | 날짜별 에러 로그 |
 
-기본 계정은 `src/main/webapp/WEB-INF/security-context.xml`에 정의되어 있습니다.
+## 주요 계정
+
+테스트용 계정은 `src/main/webapp/WEB-INF/security-context.xml`에 정의되어 있습니다.
 
 | 계정 | 비밀번호 | 권한 |
 |---|---|---|
@@ -98,104 +85,22 @@ jdbc:sqlite:${legacy.sqlite.path:kjspringweb-legacy.db}?journal_mode=WAL&busy_ti
 
 ## 빌드
 
-이 프로젝트는 Maven 기반 WAR 프로젝트입니다.
+Maven 기반 WAR 프로젝트입니다.
 
 ```powershell
 D:/workspace/tools/apache-maven-3.9.9/bin/mvn.cmd clean package
 ```
 
-산출물 위치:
+산출물:
 
 ```text
-D:/workspace/kjspringweb-legacy/target/kjspringweb-legacy.war
+target/kjspringweb-legacy.war
 ```
 
-Maven은 전역 설치가 아니라 `D:/workspace/tools/apache-maven-3.9.9`에 포터블 설치되어 있습니다. `mvn clean package` 빌드 검증은 완료했습니다.
+## 관련 프로젝트
 
-## 현재 PC 기준
-
-현재 PC의 기본 컴파일러는 JDK 17입니다. Java 8은 JRE만 설치되어 있습니다. Maven과 Tomcat은 전역 설치가 아니라 `D:/workspace/tools` 하위에 포터블로 설치했습니다.
-
-이 프로젝트는 Maven `maven-compiler-plugin`의 `release 8` 설정으로 Java 8 호환 바이트코드를 생성합니다. JDK 17로 빌드해도 Java 9 이상 표준 API가 코드에 섞이면 컴파일 단계에서 차단되도록 둡니다.
-
-## 작업 원칙
-
-이 프로젝트에는 Spring Boot를 추가하지 않습니다.
-
-목적은 레거시 Spring 대상 서버를 보존하는 것입니다. 편의를 위해 Boot starter, 내장 Tomcat, auto-configuration을 넣으면 이 프로젝트의 검증 가치가 떨어집니다.
-
-기능은 작게 유지하되 아래 특성은 유지합니다.
-
-- `web.xml`
-- XML bean 설정
-- WAR
-- 외장 Tomcat 전제
-- `javax.servlet`
-- Servlet 3.1 async 지원
-- MyBatis XML mapper
-- SQLite 파일 DB
-- 서버 세션 기반 form-login 인증
-
-
-
-
-## 매일 에러 패턴 배치
-
-Spring Boot Batch가 아니라 레거시 Spring `task:scheduled` 기반입니다.
-
-- 설정 위치: `src/main/webapp/WEB-INF/application-context.xml`
-- 실행 Bean: `LegacyErrorPatternBatch`
-- 스케줄: 매일 `03:35:00`
-- 목적: 날짜별로 다른 종류의 장애를 일부러 발생시켜 TurtlePick 계측/로그 관측을 검증
-
-패턴은 `dayOfMonth % 5` 기준입니다.
-
-| 패턴 | 장애 |
+| 프로젝트 | 역할 |
 |---|---|
-| 0 | 벤더 코드 중복 INSERT로 UNIQUE 제약 실패 |
-| 1 | 재고 음수 조정으로 CHECK 제약 실패 |
-| 2 | 큐 상태값 `BROKEN_STATUS`로 CHECK 제약 실패 |
-| 3 | 숫자 파싱 실패 |
-| 4 | NullPointerException |
-
-수동 실행은 `/ops` 화면의 `Daily Error Batch Manual Trigger`에서 할 수 있습니다.
-## 서버 로그
-
-운영 서버처럼 날짜별 파일 로그를 남깁니다.
-
-기본 로그 경로:
-
-```text
-D:/workspace/kjspringweb-legacy/logs/app
-```
-
-외장 Tomcat 실행 시 JVM 옵션으로 변경할 수 있습니다.
-
-```text
--Dlegacy.log.path=D:/workspace/kjspringweb-legacy/logs/app
-```
-
-로그 파일:
-
-| 파일 | 내용 | 보관 |
-|---|---|---|
-| `legacy-app.log` | INFO 이상 현재 로그 | 날짜별 롤링, 14일 |
-| `legacy-app.yyyy-MM-dd.log` | 지난 일자 일반 로그 | 14일 |
-| `legacy-error.log` | ERROR 이상 현재 로그 | 날짜별 롤링, 30일 |
-| `legacy-error.yyyy-MM-dd.log` | 지난 일자 에러 로그 | 30일 |
-
-로그 패턴은 운영 확인용으로 짧게 유지합니다.
-## 로컬 도구
-
-| 도구 | 위치 | 확인 |
-|---|---|---|
-| Maven 3.9.9 | `D:/workspace/tools/apache-maven-3.9.9` | `mvn -version` 확인 완료 |
-| Tomcat 8.5.100 | `D:/workspace/tools/apache-tomcat-8.5.100` | `catalina version` 확인 완료 |
-
-Tomcat은 실행 시 `CATALINA_HOME`, `CATALINA_BASE`를 해당 경로로 지정해서 사용합니다.
-## 다음 작업
-
-1. Tomcat smoke는 `runtime/tomcat-base`와 18080 포트로 검증 완료했습니다.
-2. `/login` 200, 로그인 후 `/ops` 200, `creditLimit=abc` 에러 화면 노출을 확인했습니다.
-3. 다음 작업은 TurtlePick agent를 `-javaagent`로 붙여 Spring MVC 4.x + `javax.servlet` 환경에서 HTTP hook이 동작하는지 확인하는 것입니다.
-4. MyBatis XML mapper 호출을 SQL/DAO 계측 검증 시나리오로 확장합니다.
+| `turtlepick` | 비즉시성 모니터링 엔진 |
+| `kjspringweb` | Spring Boot 기반 TurtlePick 대상 서버 |
+| `kjspringweb-legacy` | 레거시 Spring MVC/WAR 기반 TurtlePick 대상 서버 |
