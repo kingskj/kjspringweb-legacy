@@ -83,6 +83,22 @@ a:hover {
     font-weight: 600;
 }
 
+.link-button.described {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+    text-align: left;
+}
+
+.link-button.described span,
+.item-desc,
+.field-help {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.45;
+}
+
 .nav a:hover,
 .link-button:hover {
     border-color: var(--brand);
@@ -239,6 +255,11 @@ tr:hover td {
     padding: 10px 12px;
 }
 
+.list li a,
+.item-desc {
+    display: block;
+}
+
 .status {
     display: inline-flex;
     align-items: center;
@@ -280,6 +301,11 @@ tr:hover td {
     flex-wrap: wrap;
     gap: 8px;
     align-items: center;
+}
+
+.action-list {
+    display: grid;
+    gap: 10px;
 }
 
 @media (max-width: 840px) {

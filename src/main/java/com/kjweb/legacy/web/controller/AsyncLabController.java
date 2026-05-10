@@ -23,7 +23,7 @@ public class AsyncLabController {
             @Override
             public String call() throws Exception {
                 Thread.sleep(300L);
-                return "legacy callable async ok";
+                return "레거시 Callable 비동기 요청이 정상 처리되었습니다.";
             }
         };
     }
@@ -34,7 +34,7 @@ public class AsyncLabController {
         return new Callable<String>() {
             @Override
             public String call() {
-                throw new IllegalStateException("legacy callable async failure");
+                throw new IllegalStateException("레거시 Callable 비동기 처리 중 의도한 오류가 발생했습니다.");
             }
         };
     }
@@ -42,11 +42,11 @@ public class AsyncLabController {
     @GetMapping("/async-lab/deferred")
     @ResponseBody
     public DeferredResult<String> deferred() {
-        final DeferredResult<String> result = new DeferredResult<String>(3000L, "legacy deferred timeout");
+        final DeferredResult<String> result = new DeferredResult<String>(3000L, "레거시 DeferredResult 비동기 요청이 제한 시간 안에 완료되지 않았습니다.");
         DEFERRED_EXECUTOR.schedule(new Runnable() {
             @Override
             public void run() {
-                result.setResult("legacy deferred async ok");
+                result.setResult("레거시 DeferredResult 비동기 요청이 정상 처리되었습니다.");
             }
         }, 300L, TimeUnit.MILLISECONDS);
         return result;
@@ -59,7 +59,7 @@ public class AsyncLabController {
         DEFERRED_EXECUTOR.schedule(new Runnable() {
             @Override
             public void run() {
-                result.setErrorResult(new IllegalArgumentException("legacy deferred async failure"));
+                result.setErrorResult(new IllegalArgumentException("레거시 DeferredResult 비동기 처리 중 의도한 오류가 발생했습니다."));
             }
         }, 300L, TimeUnit.MILLISECONDS);
         return result;
